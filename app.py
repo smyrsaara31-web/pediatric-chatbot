@@ -77,7 +77,7 @@ def build_vectorstore():
 @st.cache_resource(show_spinner=False)
 def get_llm():
     return ChatGroq(
-        model="llama-3.3-70b-versatile",
+        model="openai/gpt-oss-120b",
         temperature=0.3,
     )
 
