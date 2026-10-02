@@ -77,7 +77,7 @@ def build_vectorstore():
 @st.cache_resource(show_spinner=False)
 def get_llm():
     return ChatGoogleGenerativeAI(
-        model="gemini-3.8-flash",
+        model="gemini-1.5-flash",
         temperature=0.3,
     )
 
