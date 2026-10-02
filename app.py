@@ -76,10 +76,12 @@ def build_vectorstore():
 
 @st.cache_resource(show_spinner=False)
 def get_llm():
-    return ChatGoogleGenerativeAI(
-        model="gemini-1.5-flash",
-        temperature=0.3,
-    )
+    """Return a list of fallback LLMs (in priority order)"""
+    return [
+        ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.3),
+        ChatGoogleGenerativeAI(model="gemini-2.5-flash-lite", temperature=0.3),
+        ChatGoogleGenerativeAI(model="gemini-flash-latest", temperature=0.3),
+    ]
 
 
 def extract_text(response):
@@ -155,11 +157,22 @@ PARENT'S QUESTION:
 
 HELPFUL ANSWER:"""
 
+    last_error = None
+answer = None
+for i, model in enumerate(llm, 1):
     try:
-        response = llm.invoke(prompt)
+        response = model.invoke(prompt)
         answer = extract_text(response)
+        break
     except Exception as e:
-        answer = f"Sorry, an error occurred: {e}"
+        last_error = e
+        if "RESOURCE_EXHAUSTED" in str(e) or "429" in str(e):
+            continue
+        else:
+            break
+
+if answer is None:
+    answer = f"Sorry, all models are busy right now. Please try again in a minute. Error: {last_error}"
 
     return answer, source_used
 
