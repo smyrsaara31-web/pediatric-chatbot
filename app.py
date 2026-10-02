@@ -24,7 +24,7 @@ PEDIATRIC_KEYWORDS = [
     "my son", "my daughter", "my child", "my baby", "my kid",
     "infancy", "adolescent", "teenager"
 ]
-NUM_SAMPLES = 5000
+NUM_SAMPLES = 1500
 SIMILARITY_THRESHOLD = 0.85
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 
