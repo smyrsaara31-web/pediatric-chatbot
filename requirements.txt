@@ -1,0 +1,10 @@
+streamlit
+datasets
+langchain-huggingface
+langchain-chroma
+langchain-core
+langchain-google-genai
+chromadb
+sentence-transformers
+duckduckgo-search
+tqdm
