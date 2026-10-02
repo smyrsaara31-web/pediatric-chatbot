@@ -6,7 +6,7 @@ from tqdm import tqdm
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_groq import ChatGroq
 from duckduckgo_search import DDGS
 
 st.set_page_config(
@@ -15,7 +15,7 @@ st.set_page_config(
     layout="centered"
 )
 
-os.environ["GOOGLE_API_KEY"] = st.secrets["GOOGLE_API_KEY"]
+os.environ["GROQ_API_KEY"] = st.secrets["GROQ_API_KEY"]
 
 PEDIATRIC_KEYWORDS = [
     "child", "children", "kid", "kids", "baby", "babies",
@@ -76,11 +76,10 @@ def build_vectorstore():
 
 @st.cache_resource(show_spinner=False)
 def get_llm():
-    return [
-        ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.3),
-        ChatGoogleGenerativeAI(model="gemini-2.5-flash-lite", temperature=0.3),
-        ChatGoogleGenerativeAI(model="gemini-flash-latest", temperature=0.3),
-    ]
+    return ChatGroq(
+        model="llama-3.3-70b-versatile",
+        temperature=0.3,
+    )
 
 
 def extract_text(response):
@@ -113,7 +112,7 @@ def search_web(query, max_results=3):
         return None
 
 
-def get_bot_response(user_question, vectorstore, llm_list):
+def get_bot_response(user_question, vectorstore, llm):
     results = vectorstore.similarity_search_with_score(user_question, k=5)
     good_results = [(doc, score) for doc, score in results if score < SIMILARITY_THRESHOLD]
 
@@ -156,22 +155,11 @@ PARENT'S QUESTION:
 
 HELPFUL ANSWER:"""
 
-    last_error = None
-    answer = None
-    for model in llm_list:
-        try:
-            response = model.invoke(prompt)
-            answer = extract_text(response)
-            break
-        except Exception as e:
-            last_error = e
-            if "RESOURCE_EXHAUSTED" in str(e) or "429" in str(e):
-                continue
-            else:
-                break
-
-    if answer is None:
-        answer = f"Sorry, all models are busy right now. Please try again in a minute. Error: {last_error}"
+    try:
+        response = llm.invoke(prompt)
+        answer = extract_text(response)
+    except Exception as e:
+        answer = f"Sorry, an error occurred: {e}"
 
     return answer, source_used
 
@@ -180,9 +168,9 @@ st.title("Pediatric Medical Chatbot")
 st.markdown("### Ask any question about your child's health")
 st.markdown("**Disclaimer:** This chatbot is for educational purposes only. Always consult a licensed pediatrician.")
 
-with st.spinner("Starting up... (first run may take 5-10 minutes)"):
+with st.spinner("Starting up... (first run may take 2-4 minutes)"):
     vectorstore = build_vectorstore()
-    llm_list = get_llm()
+    llm = get_llm()
 
 st.success("Chatbot is ready! Ask your question below.")
 
@@ -200,7 +188,7 @@ if user_input := st.chat_input("Ask about your child's health..."):
 
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
-            answer, source = get_bot_response(user_input, vectorstore, llm_list)
+            answer, source = get_bot_response(user_input, vectorstore, llm)
             full_response = f"**{source}**\n\n{answer}"
             st.markdown(full_response)
 
